@@ -1,0 +1,819 @@
+AOSP – Android Open Source Project
+-----------------------------------
+
+What It Is
+----------
+The Android Open Source Project is Google’s initiative to provide the source code for the Android operating system under an open-source license (mainly the Apache License 2.0).
+It’s essentially the foundation of Android, without Google’s proprietary apps (Gmail, Play Store, YouTube, etc.).
+
+Website: https://source.android.com/
+
+Source Code: Hosted on AOSP Git repositories
+
+
+Usage & Purpose
+----------------
+1. Device Manufacturers (OEMs)
+---------------------------------
+Companies like Samsung, OnePlus, Xiaomi, etc., take AOSP as a base, add their own UI skins (OneUI, MIUI, OxygenOS), drivers, and proprietary apps, then ship it with their hardware.
+
+2. Custom ROM Development
+---------------------------
+Communities (e.g., LineageOS, Pixel Experience) use AOSP to build custom ROMs for devices, often adding performance tweaks, removing bloatware, or extending OS support beyond official updates.
+
+3. App & Feature Testing
+-------------------------
+Developers can compile AOSP to create a vanilla Android emulator or run it on supported devices for:
+
+Debugging system-level features
+
+Testing apps on a clean, Google-free Android environment
+
+4. Embedded & Specialized Devices
+---------------------------------
+AOSP is used for:
+
+Android TVs & Set-top boxes
+
+Automotive systems (Android Automotive)
+
+IoT devices and smart appliances
+
+
+Key Points
+-----------
+Free & Open Source — Anyone can download, modify, and build it.
+
+No Google Services by Default — You must add GMS (Google Mobile Services) separately.
+
+Highly Customizable — You can change UI, kernel, system services, etc.
+
+Common in STB Development — In Android-based set-top boxes, AOSP is the core OS before adding OTT apps, streaming protocols, and custom launchers.
+
+Android STB development:
+========================
+
+If you’re working in Android STB development (like you do), AOSP is the base OS you start with before adding:
+
+Vendor-specific drivers (WiFi, tuner, HDMI)
+
+Media streaming services (MSE, HbbTV, Cobalt)
+
+Custom launchers & branding
+
+
+
+
+AOSP usage flow diagram for Android STB development:
+             ┌────────────────────────────────┐
+             │   AOSP Source Code (Base OS)    │
+             │  - Frameworks (Java)            │
+             │  - System Services              │
+             │  - Linux Kernel                  │
+             │  - HAL (Hardware Abstraction)   │
+             └────────────────────────────────┘
+                           │
+                           ▼
+             ┌────────────────────────────────┐
+             │  Vendor BSP (Board Support Pkg) │
+             │  - Device-specific Drivers       │
+             │  - SoC SDK (WiFi, HDMI, USB)     │
+             │  - Kernel Config                 │
+             │  - Device Tree                   │
+             └────────────────────────────────┘
+                           │
+                           ▼
+             ┌────────────────────────────────┐
+             │   Custom Middleware & Modules   │
+             │  - Streaming Engines (MSE, DASH)│
+             │  - HbbTV / Cobalt Browser        │
+             │  - UPnP, DIAL, DLNA              │
+             │  - Protocols (SSDP, TCP/UDP)     │
+             └────────────────────────────────┘
+                           │
+                           ▼
+             ┌────────────────────────────────┐
+             │    Android Applications Layer   │
+             │  - Launcher UI (Java/Kotlin)    │
+             │  - Settings & Media Apps        │
+             │  - OTT Clients (YouTube, OTT)   │
+             │  - Vendor Custom APKs           │
+             └────────────────────────────────┘
+                           │
+                           ▼
+             ┌────────────────────────────────┐
+             │ Build System (Makefiles / GN)   │
+             │  - Android.mk / Android.bp      │
+             │  - App Makefiles                 │
+             │  - Vendor & Product Makefiles    │
+             │  - Resource Packaging (APK)      │
+             └────────────────────────────────┘
+                           │
+                           ▼
+             ┌────────────────────────────────┐
+             │     Final STB Firmware Image    │
+             │  - system.img                   │
+             │  - boot.img                     │
+             │  - vendor.img                   │
+             │  - OTA Package                   │
+             └────────────────────────────────┘
+                           │
+                           ▼
+             ┌────────────────────────────────┐
+             │  Flash to STB & Deployment      │
+             │  - ADB / Fastboot               │
+             │  - Vendor Flashing Tool         │
+             │  - USB / Network Update         │
+             └────────────────────────────────┘
+Where You Fit in This Process
+-------------------------------
+AOSP Source Mods → Modify framework code, system services, or HAL for STB features.
+Vendor BSP Integration → Add/modify device drivers and kernel configs.
+Middleware → Integrate streaming engines, protocols (UPnP, DIAL, etc.).
+Applications Layer → Create/modify APKs for UI, settings, OTT.
+Build System → Write/modify Android.mk, Android.bp, or GN files to include your code in the build.
+
+
+1. AOSP as the Base OS
+------------------------
+What comes from Google:
+Android Framework (Java/Kotlin system APIs)
+
+Native Libraries (libc, media framework, networking stack)
+
+System Services (ActivityManager, MediaServer, etc.)
+
+Linux Kernel (generic version, needs customization for STB)
+
+Purpose in STB: Provides the base operating system, app runtime (ART/Dalvik), and APIs for both system apps and OTT apps.
+
+2. Vendor BSP (Board Support Package) Integration
+--------------------------------------------------
+What comes from SoC vendor:
+
+Device-specific drivers (Wi-Fi, HDMI, Tuner, USB)
+Kernel modifications and device tree
+HAL (Hardware Abstraction Layer) implementations for STB hardware
+
+AOSP Usage: Vendor takes the AOSP kernel + HAL interfaces and implements hardware-specific layers so AOSP can talk to the actual STB hardware.
+
+3. Middleware & Protocol Integration
+-------------------------------------
+What your company adds:
+Streaming protocols (MSE, DASH, HLS)
+Broadcast standards (HbbTV, DVB, DAB)
+OTT integrations (YouTube, Netflix via Cobalt or HTML5 WebKit browser)
+Networking protocols (UPnP, DIAL, SSDP, TCP/UDP)
+
+AOSP Usage: These components are compiled and linked into the AOSP build through Android.mk or Android.bp files.
+
+4. Application Layer
+---------------------
+Custom UI / Launcher
+Settings app, media player apps
+OTT app preloading (APK files integrated into /system or /vendor)
+
+AOSP Usage: Apps are built using Android SDK (part of AOSP) and compiled into the firmware build.
+
+5. Build System
+----------------
+AOSP Build System uses:
+Android.mk / Android.bp for native & Java modules
+device/ and vendor/ directories for device configs
+make or soong to generate system images
+
+STB-specific usage: Your C/Java code and resources are included here to ensure they’re built into system.img or vendor.img.
+
+6. Final Firmware Image Creation
+---------------------------------
+Outputs:
+boot.img → Kernel + ramdisk
+system.img → Android OS + apps
+vendor.img → Vendor-specific binaries, HALs
+userdata.img → Default app data (optional)
+
+AOSP Usage: Uses AOSP’s build tools to generate signed images for the STB.
+
+7. Deployment
+--------------
+Firmware flashed to STB via:
+ADB
+Fastboot
+Vendor OTA update tools
+STB then boots into customized AOSP-based OS.
+
+
+
+
+
+
+What is FrameWork API
+======================
+In Android (including AOSP for STB), the framework API is basically the set of programming interfaces that the Android framework layer exposes to app developers and system components.
+
+Think of it as the “toolbox” Google gives you on top of the Linux kernel so you can build apps, system services, and UIs.
+
+1. Where it lives
+-------------------
+Located in frameworks/base/ inside AOSP.
+
+Written mostly in Java (for app-facing APIs) and C/C++ (for native system services).
+
+The Java part gets compiled into framework.jar, which is what apps import when you write:
+import android.content.Context;
+import android.media.MediaPlayer;
+
+2. Purpose
+-----------
+For apps: Lets you use Android features without knowing low-level hardware details.
+
+Example:
+WifiManager wifi = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+wifi.setWifiEnabled(true);
+
+You didn’t have to touch the Wi-Fi driver — the framework handled it.
+
+
+For system apps (like your STB launcher): Gives access to special system services (ActivityManager, InputManager, TV Input Framework, etc.).
+
+For HAL communication: Framework APIs call Binder IPC to talk to system services, which talk to HALs, which talk to the kernel.
+
+
+3. Layers in Context
+---------------------
+[ Apps & System Apps ]     ← You write here
+[ Android Framework APIs ] ← The toolbox
+[ Native Libraries ]       ← Media, graphics, networking
+[ HAL (Hardware Abstraction Layer) ]
+[ Linux Kernel + Drivers ]
+
+4. Example in STB Context
+-------------------------
+Let’s say your custom launcher wants to switch HDMI input:
+Your launcher uses TV Input Manager API (framework API).
+TV Input Manager calls into system TV service.
+That service talks to vendor HAL for HDMI switching.
+HAL sends the command to the kernel driver.
+
+Code example:
+-------------
+TvInputManager tvManager =
+    (TvInputManager) getSystemService(Context.TV_INPUT_SERVICE);
+tvManager.switchInput("HDMI1");
+
+(Method name will differ by vendor — some require custom API extensions.)
+
+5. Key Point
+--------------
+When people say “framework API” in AOSP or Android 8 STB builds, they mean:
+
+The public and system-level Java classes provided by framework.jar (and sometimes hidden APIs) that apps and services can call to interact with the OS.
+
+
+
+
+
+
+
+
+Android System Service:
+=======================
+In Android (including AOSP for STB), System Services are the core background services running inside the Android framework that provide all the major OS features.
+
+You can think of them as managers in charge of specific jobs — each service handles one domain, and all apps (including your custom STB launcher) use them through framework APIs.
+
+1. Where They Run
+------------------
+They live inside the system_server process.
+
+Started during Android boot by SystemServer.java (frameworks/base/services/java/com/android/server/SystemServer.java in AOSP).
+
+2. Examples of System Services
+------------------------------
+Service Name						Purpose
+ActivityManagerService (AMS)	Starts/stops apps, manages activities & tasks.
+PackageManagerService (PMS)		Installs/uninstalls APKs, manages permissions.
+WindowManagerService (WMS)		Handles windows, layouts, screen rotation.
+InputManagerService				Processes touch/remote/keyboard events.
+TvInputManagerService			Handles TV channels, HDMI inputs (important for STB).
+PowerManagerService				Controls sleep/wake, power state.
+ConnectivityService				Manages network connections (Wi-Fi, Ethernet).
+MediaSessionService				Controls playback and media buttons.
+
+3. How You Use Them
+--------------------
+Accessed through Context.getSystemService().
+
+Returned as a Manager class (e.g., ActivityManager, TvInputManager, PowerManager).
+
+Example in a launcher:
+----------------------
+TvInputManager tvManager =
+    (TvInputManager) getSystemService(Context.TV_INPUT_SERVICE);
+
+List<TvInputInfo> inputs = tvManager.getTvInputList();
+// Now you can display HDMI1, HDMI2 in your UI
+
+4. How They Work Internally
+----------------------------
+Your app calls a framework API (e.g., TvInputManager.getTvInputList()).
+
+This API sends a Binder IPC request to the corresponding system service in system_server.
+The system service runs privileged code, possibly talking to the HAL or native services.
+Response is sent back to your app.
+
+5. In STB Context
+------------------
+Your custom launcher will heavily depend on system services:
+	TvInputManagerService → HDMI input switching, channel list.
+	ActivityManagerService → Launching OTT apps.
+	Settings service → Opening system settings.
+	WindowManagerService → Full-screen launcher control.
+	Without these, the launcher would have to directly talk to hardware drivers — which AOSP avoids.
+
+
+1. Android Boot Flow to Launcher (AOSP STB):
+---------------------------------------------
+				[ Bootloader (u-boot) ]
+						 ↓
+				[ Linux Kernel ]
+						 ↓
+				[ init process (init.rc scripts) ]
+						 ↓
+				[ Zygote process starts ]
+						 ↓
+				[ system_server process ]
+						 ↓
+				[ SystemServer.java ]
+					- Starts System Services:
+					  • ActivityManagerService
+					  • WindowManagerService
+					  • PackageManagerService
+					  • TvInputManagerService
+					  • PowerManagerService
+					  • ConnectivityService
+						 ↓
+				[ ActivityManagerService ]
+					- Reads "ro.bootanimation"
+					- Decides Home app
+						 ↓
+				[ Custom STB Launcher (Home app) ]
+					- Uses Framework APIs
+					- Talks to System Services
+					- Displays OTT apps, HDMI inputs, Settings
+
+2. Role of Each Stage
+---------------------
+Stage						Purpose in STB
+-----                       ---------------
+Bootloader			Initializes CPU, memory, loads kernel.
+Kernel				Starts Linux OS, loads device drivers (HDMI, network, remote control).
+init				Runs .rc scripts, mounts filesystems, starts zygote.
+Zygote				Preloads Java classes, forks processes for all apps.
+system_server		The brain of Android — runs system services.
+System Services		Provide APIs for TV input, apps, settings, media.
+Custom Launcher		UI layer for user, sends commands to system services.
+
+
+3. How Your STB Launcher Talks to System Services
+-------------------------------------------------
+Example — Switching to HDMI2:
+
+	[ Launcher ]
+		↓ Calls Framework API:
+		  TvInputManager.switchInput("HDMI2")
+		↓ Binder IPC
+	[ TvInputManagerService in system_server ]
+		↓ Talks to Vendor HAL (HDMI HAL)
+	[ HAL ]
+		↓ Talks to
+	[ HDMI Kernel Driver ]
+
+4. Why This Matters
+--------------------
+If you build a custom AOSP-based STB launcher, you:
+
+	Don’t talk to hardware directly
+	Only use Framework APIs (Java) → System Services (Binder) → HAL (C++) → Drivers (kernel)
+	This keeps code portable across hardware vendors
+
+Linux Kernel
+=============
+In simple terms — the Linux Kernel is the core part of the operating system in Android (and other Linux-based systems like Ubuntu).
+
+It’s like the engine in a car — you don’t directly see it, but everything else runs because of it.
+
+1. What It Does
+----------------
+The Linux Kernel sits between:
+	Hardware (CPU, RAM, HDMI ports, Wi-Fi chip, etc.)
+	Software (Android Framework, apps, services)
+
+It is responsible for:
+---------------------
+Hardware Abstraction 		– lets software talk to hardware without worrying about vendor-specific details.
+
+Process Management			– creates, schedules, and terminates processes.
+
+Memory Management			– allocates and frees RAM safely.
+
+Device Drivers 				– provides access to peripherals (Ethernet, HDMI, USB, IR remote, etc.).
+
+Security 					– enforces permissions, sandboxing, and isolation.
+
+Networking					– manages TCP/IP stack for internet and local network.
+
+File Systems 				– reads/writes data to storage.
+
+
+
+2. In Android STB
+------------------
+In an Android Set-Top Box, the Linux Kernel:
+	Talks to the HDMI driver (so your TV shows a picture)
+	Talks to the remote control driver (so key presses are received)
+	Talks to the Ethernet/Wi-Fi driver (for OTT streaming)
+	Handles USB ports, audio output, Bluetooth if present
+	Passes input/output data to the Android HAL (Hardware Abstraction Layer)
+
+3. Android Kernel Special Features
+------------------------------------
+The Android version of the Linux Kernel includes:
+	Binder IPC driver (for communication between apps and system services)
+	Low Memory Killer (special memory management for mobile devices)
+	Wakelocks (to control sleep/wake behavior)
+	ASHMEM (shared memory driver)
+	Logger (for logcat)
+
+4. Boot Flow Position
+----------------------
+	[ Bootloader (u-boot) ]
+			↓
+	[ Linux Kernel ]  <-- Controls hardware
+			↓
+	[ Android init process ]
+			↓
+	[ Zygote & system_server ]
+			↓
+	[ Apps & Services ]
+
+
+
+
+
+
+Vendor BSP (Board Support Package)
+====================================
+1. Vendor BSP (Board Support Package)
+
+"Definition:" A BSP is a collection of "software and configuration files" provided by the "silicon vendor (SoC manufacturer)" or "board vendor" to make an operating system (like Linux / Android) run on that hardware.
+
+"Purpose:" It "bridges" the OS with the underlying "hardware board + SoC."
+
+"Contents:" Usually includes:
+
+Bootloader (e.g., U-Boot)
+
+Linux Kernel sources (with patches for that SoC)
+
+Device-specific drivers (WiFi, HDMI, Audio, etc.)
+
+Device Tree files
+
+Build configurations
+
+Without BSP, the OS doesn’t know how to talk to the hardware.
+
+Example: Amlogic / Broadcom / Qualcomm / MediaTek BSP for Android STB.
+
+
+2. Device-specific Drivers
+--------------------------
+"Definition:" Drivers are kernel modules or software components that control specific hardware on the board.
+
+"Purpose:" They expose hardware functionality to the OS in a standardized way.
+
+"Examples:"
+
+WiFi Driver (to talk to WiFi chipset, e.g., Realtek / Broadcom)
+
+HDMI Driver (to control HDMI output/input)
+
+USB Controller Driver
+
+Audio Codec Driver
+
+GPU Driver (Mali, Adreno)
+
+Without drivers, the kernel knows the hardware exists but can’t use it.
+
+
+3. SoC SDK (System on Chip Software Development Kit)
+-----------------------------------------------------
+"Definition:" A collection of "libraries, headers, and sample code" provided by the "SoC vendor" to help developers integrate the SoC features.
+
+"Purpose:" Provides higher-level APIs to use the SoC hardware without writing low-level code.
+
+"Contents:"
+
+Multimedia frameworks (e.g., Video decoding/encoding APIs for H.264/H.265)
+
+Connectivity APIs (WiFi, Bluetooth stack)
+
+Power management libraries
+
+Hardware acceleration libraries (GPU, VPU, DSP)
+
+Example code & test utilities
+
+Example: Amlogic SDK provides APIs to access video decoder, Dolby audio, HDMI CEC, etc.
+
+
+4. Kernel Config
+-----------------
+"Definition:" A configuration file "(.config)" that tells the Linux kernel "what features, drivers, and options to include" when compiling.
+
+"Purpose:" Controls how the kernel is built for a particular board.
+
+"Examples:"
+
+Enable/disable drivers (CONFIG_USB=y, CONFIG_WIFI=m)
+
+Security options (SELinux, AppArmor)
+
+Filesystem support (EXT4, FAT, NFS)
+
+Debugging features
+
+Think of it like “menuconfig” where you select what hardware/software features the kernel should support.
+
+
+
+5. Device Tree
+--------------
+"Definition:" A data structure (.dts and .dtsi files) used by the Linux kernel to describe the "hardware layout" of a board.
+
+"Purpose:" Allows the kernel to understand "what hardware exists and how it’s connected," without hardcoding it.
+
+"Contents:"
+
+CPU cores and their frequencies
+
+Memory size & mapping
+
+Peripherals (I²C, SPI, UART, USB, Ethernet)
+
+GPIO mappings
+
+Interrupts
+
+Example:
+--------
+&i2c1 {
+    status = "okay";
+    touch@38 {
+        compatible = "ft5x06";
+        reg = <0x38>;
+        interrupt-parent = <&gpio1>;
+        interrupts = <17 IRQ_TYPE_EDGE_FALLING>;
+    };
+};
+
+
+This snippet tells kernel: I2C bus1 has a touchscreen at address 0x38, using GPIO17 for interrupt.
+
+In short:
+------------
+
+BSP = complete package from vendor to run OS on hardware
+
+Drivers = talk to specific hardware
+
+SoC SDK = vendor libraries/APIs to use SoC features easily
+
+Kernel Config = settings that decide what features kernel builds with
+
+Device Tree = hardware description for kernel to know board layout
+
+
+
+
+
+
+Amlogic
+==========
+
+What is Amlogic?
+-----------------
+"Amlogic" is a "semiconductor company" based in China that designs "System-on-Chips (SoCs)".
+
+Their SoCs are widely used in:
+
+Android Set-Top Boxes (STB)
+
+Smart TVs
+
+OTT Devices (Fire TV, Mi Box, etc.)
+
+Media Players
+
+Projectors
+
+IoT devices
+
+
+
+Amlogic SoC
+------------
+A "SoC" (System on Chip) combines CPU, GPU, VPU (Video Processing Unit), audio, connectivity (WiFi/BT), HDMI, USB, and other controllers in "one chip."
+
+Example: "Amlogic S905X, S922X, T962, A311D"
+
+Typical features:
+
+ARM Cortex CPU cores (quad-core, octa-core)
+
+Mali GPU (for graphics)
+
+Hardware Video Decoder (VPU) for H.264, H.265, VP9, AV1
+
+Audio DSP for Dolby/DTS
+
+Peripherals: HDMI 2.x, USB 3.x, Ethernet, WiFi/BT support
+
+
+Amlogic BSP
+--------------
+When you get an "Amlogic chip" for STB/TV development, Amlogic provides a "BSP (Board Support Package)" that includes:
+
+Linux Kernel + Patches for Amlogic hardware
+
+Device Drivers (HDMI, VPU, Audio, USB, WiFi/BT)
+
+Device Tree files describing board layout
+
+Amlogic SDK with libraries for video playback, Dolby audio, HDMI CEC, etc.
+
+U-Boot bootloader (with Amlogic customization)
+
+Android patches to integrate SoC features into AOSP
+
+Why Amlogic is popular in STB/OTT
+----------------------------------
+Strong video playback capabilities (4K/8K decoding with HDR, Dolby Vision, etc.)
+
+Cost effective compared to Qualcomm/Broadcom
+
+Good Android TV support (Google certified builds exist for many Amlogic SoCs)
+
+Widely used in Amazon Fire TV Stick, Mi Box, Nvidia Shield-like devices (many based on Amlogic).
+
+In short:
+----------
+Amlogic = a chipmaker that provides SoCs + BSPs for Android STBs and Smart TVs.
+
+
+
+
+
+
+
+
+
+
+
+
+create the custom launcher in AOSP base line:
+=============================================
+
+1. Understand What a Launcher Is
+-----------------------------------
+A launcher is just an Android application that:
+	Declares the HOME category in its manifest.
+	Handles the main UI after boot.
+	In STBs, this is often a custom app showing:
+	Live TV options
+	OTT apps (YouTube, Netflix, Prime Video)
+	Settings & input sources
+	Branding
+	
+	
+2. Create the Launcher App
+---------------------------
+You can create your custom launcher in Android Studio first (easier for design) and then integrate into AOSP.
+
+Manifest Example (AndroidManifest.xml):
+---------------------------------------
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.stblauncher">
+
+    <application
+        android:label="STB Launcher"
+        android:icon="@mipmap/ic_launcher"
+        android:theme="@style/AppTheme">
+
+        <activity
+            android:name=".MainActivity"
+            android:label="STB Home"
+            android:launchMode="singleTask"
+            android:stateNotNeeded="true"
+            android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+</manifest>
+
+This tells Android:
+---------------------
+“This app can be the HOME screen.”
+
+
+3. Build UI for STB
+--------------------
+
+In MainActivity.java:
+---------------------
+Use a TV-friendly layout (Leanback library or custom Grid/Row design).
+
+Large focusable buttons (D-pad navigation).
+
+Example:
+
+Button youtubeButton = findViewById(R.id.btnYoutube);
+youtubeButton.setOnClickListener(v -> {
+    Intent intent = getPackageManager().getLaunchIntentForPackage("com.google.android.youtube.tv");
+    if (intent != null) startActivity(intent);
+});
+
+
+4. Integrate into AOSP Build
+------------------------------
+Once your launcher is tested in Android Studio:
+
+4.1 Copy your source code into:
+--------------------------------
+AOSP/
+  packages/apps/STBLauncher/
+
+
+4.2 Create Android.mk (or Android.bp for Soong builds)
+------------------------------------------------------
+Example Android.mk:
+
+LOCAL_PATH := $(call my-dir)
+
+include $(CLEAR_VARS)
+LOCAL_PACKAGE_NAME := STBLauncher
+LOCAL_SRC_FILES := $(call all-subdir-java-files)
+LOCAL_RESOURCE_DIR := $(LOCAL_PATH)/res
+LOCAL_SDK_VERSION := system_current
+LOCAL_PRIVILEGED_MODULE := true
+include $(BUILD_PACKAGE)
+
+
+5. Set as Default Launcher
+----------------------------
+Edit your product configuration file:
+
+device/<vendor>/<product>/product.mk
+
+Add:
+----
+PRODUCT_PACKAGES += \
+    STBLauncher
+
+
+Remove the default launcher:
+----------------------------
+PRODUCT_PACKAGES -= \
+    Launcher2 \
+    Launcher3
+	
+	
+6. Rebuild AOSP
+----------------
+source build/envsetup.sh
+lunch <your_device_combo>
+make STBLauncher
+make
+
+7. Flash & Test
+----------------
+Flash your new system.img to the STB.
+On boot, Android should automatically use your launcher as the home screen.
+
+Extra Tips for STB:
+--------------------
+Use Leanback Support Library for TV-optimized UI.
+
+Disable long-press HOME menu (common in phones, not in STB).
+
+Handle no-internet gracefully (offline banners).
+
+Preload OTT app intents for faster launch.,

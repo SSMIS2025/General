@@ -1,0 +1,294 @@
+Android TV
+==========
+
+
+What is Android TV?
+
+"Android TV" is a version of the Android operating system optimized for "TV devices" like Smart TVs and Set-Top Boxes (STBs).
+
+It has:
+
+Leanback Launcher (TV-friendly home screen with rows of apps & recommendations).
+
+D-pad navigation (remote control instead of touch).
+
+TV-specific system services (like HDMI-CEC, TV Input Framework).
+
+Google TV services (if licensed: Play Store, Assistant, YouTube, etc.).
+
+
+Think of it as AOSP (vanilla Android) + TV-specific UI/Frameworks + optional Google proprietary apps/services.
+
+Components of Android TV
+-------------------------
+1.AOSP Base
+-----------
+Linux Kernel, HALs, Framework, System Services.
+
+Same as normal Android but compiled for TV device hardware.
+
+2.TV-Specific Features
+--------------------
+Leanback support library (UI for TV).
+
+TV Input Framework (TIF) for HDMI, tuner, DTV sources.
+
+D-pad navigation focus.
+
+3.Launcher
+-----------	
+Default TV launcher = Launcher2/LeanbackLauncher (instead of phone/tablet launcher).
+
+4.Apps
+------
+Preloaded TV apps: Settings (TV style), YouTube (if Google TV), OTT apps.
+
+Vendor BSP
+----------
+Hardware integration (HDMI, AV input, IR remote, audio, GPU).
+
+HALs: Audio, Display, Input, Media codecs, etc.
+
+
+
+
+
+
+How to Implement Android TV in AOSP
+===================================
+If you want to build an Android TV build from AOSP, here’s the high-level flow:
+
+1. Get AOSP Source:
+	repo init -u https://android.googlesource.com/platform/manifest -b android-<version>-rX
+	repo sync
+	
+2. Choose a TV Product Target
+
+	AOSP provides generic TV targets, e.g.:
+		* aosp_x86_64_tv (for emulator)
+		* aosp_arm64_tv (for ARM-based dev boards)
+
+	Build command:
+		. build/envsetup.sh
+		lunch aosp_x86_64_tv-userdebug
+		m
+		
+3. TV-Specific Frameworks & Apps
+
+	Ensure "Leanback Launcher" and TV apps are included in PRODUCT_PACKAGES:
+
+		PRODUCT_PACKAGES += \
+			LeanbackLauncher \
+			TvSettings \
+			LiveTv \
+			TvProvider
+
+	Include LeanbackSupportLibrary for D-pad optimized UIs.
+	
+	
+4. Integrate Vendor BSP
+
+	Add device-specific:
+
+		Device tree (device/<vendor>/<board>).
+
+		Kernel config (kernel/<vendor>/<board>).
+
+		Vendor blobs (vendor/<vendor>/<board>).
+
+	This ensures HDMI, Audio, WiFi, Bluetooth, Remote, etc. work.
+	
+
+5. Customize Launcher & UI
+
+	Modify LeanbackLauncher or create a custom launcher for OTT/STB.
+
+	You can write your own launcher app using the Leanback library.
+
+6. Flash & Test
+
+	Flash build on STB/TV hardware or run in Emulator:
+
+		emulator -avd <tv_avd>
+		
+		
+		
+
+Step-by-Step: Custom Android TV Launcher (Leanback-based)
+==========================================================
+
+1. Create a New Launcher App:
+-----------------------------
+In your AOSP tree, create a new folder for your launcher:
+
+				aosp/
+				 └── packages/
+					  └── apps/
+						   └── MyTvLauncher/
+
+
+Inside MyTvLauncher/ you’ll have:
+
+	Android.mk → build script for AOSP
+
+	AndroidManifest.xml → declare as home/launcher app
+
+	src/ → Java code (Leanback-based Activity)
+
+	res/ → layouts, drawables, strings
+	
+	
+2. AndroidManifest.xml
+-----------------------
+This makes your app the default launcher for TV:
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.tvlauncher">
+
+    <application
+        android:label="My TV Launcher"
+        android:theme="@style/Theme.Leanback">
+
+        <activity
+            android:name=".MainActivity"
+            android:label="Launcher"
+            android:launchMode="singleTask"
+            android:clearTaskOnLaunch="true"
+            android:stateNotNeeded="true"
+            android:excludeFromRecents="true"
+            android:exported="true">
+
+            <!-- Declare as Launcher -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+
+
+
+3. Example Java Code (Leanback Grid)
+-------------------------------------
+
+src/com/example/tvlauncher/MainActivity.java
+
+package com.example.tvlauncher;
+
+import android.os.Bundle;
+import androidx.fragment.app.FragmentActivity;
+import androidx.leanback.app.BrowseSupportFragment;
+import androidx.leanback.widget.ArrayObjectAdapter;
+import androidx.leanback.widget.ListRow;
+import androidx.leanback.widget.ListRowPresenter;
+import androidx.leanback.widget.HeaderItem;
+import androidx.leanback.widget.Presenter;
+
+public class MainActivity extends FragmentActivity {
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        getSupportFragmentManager()
+            .beginTransaction()
+            .replace(android.R.id.content, new MyBrowseFragment())
+            .commit();
+    }
+
+    public static class MyBrowseFragment extends BrowseSupportFragment {
+
+        @Override
+        public void onActivityCreated(Bundle savedInstanceState) {
+            super.onActivityCreated(savedInstanceState);
+            setTitle("My TV Launcher");
+
+            ArrayObjectAdapter rowsAdapter = new ArrayObjectAdapter(new ListRowPresenter());
+
+            // Example row with sample items
+            HeaderItem header = new HeaderItem(0, "Apps");
+            ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(new CardPresenter());
+            listRowAdapter.add("YouTube");
+            listRowAdapter.add("Netflix");
+            listRowAdapter.add("Settings");
+            rowsAdapter.add(new ListRow(header, listRowAdapter));
+
+            setAdapter(rowsAdapter);
+        }
+    }
+
+    // Simple presenter for grid items
+    static class CardPresenter extends Presenter {
+        @Override
+        public ViewHolder onCreateViewHolder(ViewGroup parent) {
+            TextView tv = new TextView(parent.getContext());
+            tv.setFocusable(true);
+            tv.setFocusableInTouchMode(true);
+            tv.setTextSize(24);
+            tv.setPadding(40, 20, 40, 20);
+            return new ViewHolder(tv);
+        }
+
+        @Override
+        public void onBindViewHolder(ViewHolder viewHolder, Object item) {
+            ((TextView) viewHolder.view).setText(item.toString());
+        }
+
+        @Override
+        public void onUnbindViewHolder(ViewHolder viewHolder) {}
+    }
+}
+
+This creates a row-based Leanback launcher with sample entries.
+
+4. Android.mk
+-------------
+
+Since you asked specifically for Android.mk (not Android.bp) for Android 8:
+LOCAL_PATH := $(call my-dir)
+
+include $(CLEAR_VARS)
+
+LOCAL_PACKAGE_NAME := MyTvLauncher
+LOCAL_MODULE_TAGS := optional
+LOCAL_CERTIFICATE := platform
+LOCAL_PRIVILEGED_MODULE := true
+
+LOCAL_SRC_FILES := $(call all-java-files-under, src)
+
+LOCAL_RESOURCE_DIR := \
+    $(LOCAL_PATH)/res
+
+LOCAL_USE_AAPT2 := true
+
+LOCAL_STATIC_ANDROID_LIBRARIES := \
+    androidx.leanback_leanback \
+    androidx.fragment_fragment
+
+LOCAL_SDK_VERSION := current
+
+include $(BUILD_PACKAGE)
+
+
+5. Add to Your Product
+------------------------
+Edit your "device makefile" (device/<vendor>/<board>/device.mk) and add:
+
+	PRODUCT_PACKAGES += MyTvLauncher
+
+This ensures it’s built into your TV image.
+
+6. Build & Flash
+----------------
+
+	. build/envsetup.sh
+	lunch aosp_x86_64_tv-userdebug
+	m MyTvLauncher
+
+Then flash your image. On boot, your launcher will replace the default LeanbackLauncher.
+
+Result: You now have a custom Android TV launcher integrated in AOSP with Android.mk.
+It uses Leanback library, supports D-pad remote navigation, and can be extended with HDMI inputs, OTT apps, or Settings shortcuts.

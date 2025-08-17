@@ -1,0 +1,312 @@
+parcel:
+=======
+
+Now diving into Parcel and its role between Java ↔ JNI ↔ Native in Android.
+
+What is a Parcel in Android
+----------------------------
+	* "Parcel" is Android’s "lightweight IPC (Inter-Process Communication) container."
+
+	* Think of it like a "binary serialization buffer" that the system uses to send data across processes.
+
+	* Used heavily in "Binder IPC" (system services, framework <-> system_server, apps <-> system services).
+
+	* It is "not general-purpose serialization" (like Java Serializable) → optimized for *speed and memory.
+	
+	* Think of it like a container where you pack (write) values, send it through Binder or JNI, and unpack (read) later.
+
+	* Optimized: no reflection, no deep copy → just raw memory.
+	
+2. Flow of Data (Java ↔ JNI ↔ Native)
+-------------------------------------
+
+			Java code
+			  │
+			  │  (android.os.Parcel object)
+			  ▼
+			JNI bridge (C glue)
+			  │
+			  │  (convert jobject → android::Parcel*)
+			  ▼
+			Native C++ (libbinder::Parcel)
+			  │
+			  │  write/read raw data
+			  ▼
+			Back to Java (read results from Parcel)
+
+3. Example: Sending Data Java → Native → Java
+---------------------------------------------
+(A) Java Code
+
+public class ParcelDemo {
+    static {
+        System.loadLibrary("parceljni"); // load native lib
+    }
+
+    // Declare native functions
+    public native void writeToNative(Parcel p);
+    public native void readFromNative(Parcel p);
+
+    public static void main(String[] args) {
+        Parcel p = Parcel.obtain();
+
+        // Step 1: Write in Java
+        p.writeInt(42);
+        p.writeString("Hello from Java");
+
+        // Step 2: Send to native
+        ParcelDemo demo = new ParcelDemo();
+        demo.writeToNative(p);
+
+        // Reset pointer to read what native wrote
+        p.setDataPosition(0);
+
+        // Step 3: Read after native modification
+        demo.readFromNative(p);
+    }
+}
+
+
+(B) JNI Glue (C++)
+----------------------
+File: parceljni.cpp
+
+#include <jni.h>
+#include <binder/Parcel.h>
+#include <android/os/Parcel.h>   // JNI helpers
+#include <utils/Log.h>
+using namespace android;
+
+// Convert Java Parcel object to native android::Parcel*
+static Parcel* parcelForJavaObject(JNIEnv* env, jobject jParcel) {
+    jclass clazz = env->FindClass("android/os/Parcel");
+    jfieldID nativePtrField = env->GetFieldID(clazz, "mNativePtr", "J");
+    jlong nativePtr = env->GetLongField(jParcel, nativePtrField);
+    return reinterpret_cast<Parcel*>(nativePtr);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_example_ParcelDemo_writeToNative(JNIEnv* env, jobject thiz, jobject jParcel) {
+    Parcel* parcel = parcelForJavaObject(env, jParcel);
+
+    // Move read/write pointer to start
+    parcel->setDataPosition(0);
+
+    // Read what Java wrote
+    int32_t num = parcel->readInt32();
+    String16 str16 = parcel->readString16();
+
+    ALOGD("JNI read: %d, %s", num, String8(str16).string());
+
+    // Now write new values from native
+    parcel->setDataPosition(0); // reset for overwrite
+    parcel->writeInt32(num * 2); // double the number
+    parcel->writeString16(String16("Reply from Native"));
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_example_ParcelDemo_readFromNative(JNIEnv* env, jobject thiz, jobject jParcel) {
+    Parcel* parcel = parcelForJavaObject(env, jParcel);
+
+    parcel->setDataPosition(0); // reset pointer
+
+    int32_t num = parcel->readInt32();
+    String16 str16 = parcel->readString16();
+
+    ALOGD("Back in Java after native: %d, %s", num, String8(str16).string());
+}
+
+
+(C) Expected Log Output
+-----------------------
+
+	JNI read: 42, Hello from Java
+	Back in Java after native: 84, Reply from Native
+
+4. Key Points to Remember
+---------------------------
+1.Java ↔ Native Bridge
+----------------------
+	* Java android.os.Parcel holds a hidden long mNativePtr.
+
+	* JNI extracts this pointer → maps to android::Parcel*.
+
+2.Parcel in Java
+----------------
+	p.writeInt(42);
+	p.writeString("Hello");
+	p.readInt();
+	p.readString();
+
+3.Parcel in Native (C++)
+--------------------------
+	parcel->writeInt32(42);
+	parcel->writeString16(String16("Hello"));
+	parcel->readInt32();
+	parcel->readString16();
+
+4. Data Position Matters
+--------------------------
+	setDataPosition(0) resets the read/write pointer.
+	Always reset before reading after writes.
+	
+In short:
+---------
+	Parcel = shared buffer between Java & Native.
+	Java writes → JNI extracts native pointer → Native reads/writes → Java reads back.	
+	Used everywhere in Binder IPC (all system services).
+	
+	
+	
+	
+Multiple Integers and String data into Parcel:
+==============================================
+
+how to write multiple integers and strings into a Parcel and read them back using JNI (native C++).
+
+Key Idea:
+---------
+
+A Parcel is just a sequential buffer.
+Whatever you write in order on the Java side, you must read in the same order on the native side (and vice-versa).
+
+1. Example: Java Side (write multiple values)
+--------------------------------------------
+
+public class ParcelMultiDemo {
+    static {
+        System.loadLibrary("parceljni");
+    }
+
+    public native void writeToNative(Parcel p);
+    public native void readFromNative(Parcel p);
+
+    public static void main(String[] args) {
+        Parcel p = Parcel.obtain();
+
+        // Step 1: Write multiple ints and strings
+        p.writeInt(100);
+        p.writeInt(200);
+        p.writeString("Hello");
+        p.writeString("JNI World");
+
+        ParcelMultiDemo demo = new ParcelMultiDemo();
+
+        // Step 2: Send to native
+        demo.writeToNative(p);
+
+        // Reset position
+        p.setDataPosition(0);
+
+        // Step 3: Read back what native changed
+        demo.readFromNative(p);
+    }
+}
+
+
+2. JNI Side (C++)
+----------------
+
+#include <jni.h>
+#include <binder/Parcel.h>
+#include <android/os/Parcel.h>
+#include <utils/Log.h>
+using namespace android;
+
+static Parcel* parcelForJavaObject(JNIEnv* env, jobject jParcel) {
+    jclass clazz = env->FindClass("android/os/Parcel");
+    jfieldID nativePtrField = env->GetFieldID(clazz, "mNativePtr", "J");
+    jlong nativePtr = env->GetLongField(jParcel, nativePtrField);
+    return reinterpret_cast<Parcel*>(nativePtr);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_example_ParcelMultiDemo_writeToNative(JNIEnv* env, jobject thiz, jobject jParcel) {
+    Parcel* parcel = parcelForJavaObject(env, jParcel);
+
+    // Reset pointer
+    parcel->setDataPosition(0);
+
+    // Read back values written from Java
+    int32_t a = parcel->readInt32();
+    int32_t b = parcel->readInt32();
+    String16 s1 = parcel->readString16();
+    String16 s2 = parcel->readString16();
+
+    ALOGD("JNI read: %d, %d, %s, %s",
+          a, b, String8(s1).string(), String8(s2).string());
+
+    // Now overwrite with new values
+    parcel->setDataPosition(0);
+    parcel->writeInt32(a + b);                         // sum of ints
+    parcel->writeInt32(a * b);                         // product of ints
+    parcel->writeString16(String16("Reply1 from JNI"));
+    parcel->writeString16(String16("Reply2 from JNI"));
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_example_ParcelMultiDemo_readFromNative(JNIEnv* env, jobject thiz, jobject jParcel) {
+    Parcel* parcel = parcelForJavaObject(env, jParcel);
+
+    parcel->setDataPosition(0);
+
+    int32_t sum = parcel->readInt32();
+    int32_t product = parcel->readInt32();
+    String16 r1 = parcel->readString16();
+    String16 r2 = parcel->readString16();
+
+    ALOGD("Back in Java after JNI: sum=%d, product=%d, %s, %s",
+          sum, product, String8(r1).string(), String8(r2).string());
+}
+
+
+Execution Flow
+---------------
+Java writes → 100, 200, "Hello", "JNI World".
+JNI reads → logs them.
+JNI overwrites → (100+200=300), (100*200=20000), "Reply1 from JNI", "Reply2 from JNI".
+Java resets & reads → logs new modified values.
+
+Output (logcat)
+---------------
+JNI read: 100, 200, Hello, JNI World
+Back in Java after JNI: sum=300, product=20000, Reply1 from JNI, Reply2 from JNI
+
+
+
+
+
+
+HIDL(Hal Interface Definition Language)
+=======================================
+
+HIDL in Android?
+----------------
+"HIDL" stands for "HAL Interface Definition Language."
+It is a way to "define the interface between Android framework and the HAL (Hardware Abstraction Layer)."
+
+Introduced in "Android 8 (Oreo)."
+
+Before Oreo, Android HALs were implemented using C headers and hw_module_t. That caused stability problems.
+
+HIDL separates "framework code" (Java/C++) and "vendor HAL code" (C/C++) clearly, so updates to Android (framework side) don’t break vendor HALs.
+
+Purpose of HIDL
+---------------
+
+Stability → HAL and framework communicate via binderized IPC.
+
+Modularity → Easier to upgrade Android without recompiling HALs.
+
+Compatibility → Vendors implement HAL once, works across Android upgrades (Treble project).
+
+
+HIDL vs AIDL
+-------------
+
+HIDL → used for system/vendor HALs (low-level hardware).
+
+AIDL → used for app-level and system services IPC (higher-level APIs).
+
+Since Android 11, Google is migrating HALs from HIDL → AIDL for simplicity.
+

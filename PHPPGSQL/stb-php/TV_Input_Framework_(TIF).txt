@@ -1,0 +1,278 @@
+TV Input Framework (TIF):
+=========================
+TV Input Framework (TIF) is one of the most important parts of Android TV / AOSP TV.
+
+What is TV Input Framework (TIF)
+----------------------------------
+The "TV Input Framework (TIF)" in Android provides a "unified API for live TV content".
+
+It allows "Android TV apps" (like Live TV, OTT launchers, EPG apps) to access TV inputs:
+
+	HDMI ports
+	DVB-T/C/S tuners
+	Analog tuners
+	IP streaming sources (like IPTV)
+
+It abstracts hardware differences via "TV Input HAL + TV Input Service."
+
+With TIF, a developer doesn’t need to care if the source is HDMI, tuner, or IPTV — everything looks the same in the framework.
+
+TIF Architecture
+-----------------
+		+------------------------------+
+		|       Live TV App (UI)       |  <- Google LiveChannels / custom EPG
+		+------------------------------+
+					 |
+					 v
+		+------------------------------+
+		|   TV Input Manager Service   |  (Framework service, system_server)
+		+------------------------------+
+					 |
+					 v
+		+------------------------------+
+		|    TV Input Service (App)    |  <- Vendor or OEM plugin
+		|    (Java)                    |
+		+------------------------------+
+					 |
+					 v
+		+------------------------------+
+		|       TV Input HAL (C/C++)   |  <- /hardware/interfaces/tv/input/
+		+------------------------------+
+					 |
+					 v
+		+------------------------------+
+		|   Hardware (HDMI, Tuner)     |
+		+------------------------------+
+
+Key Components
+=================
+
+1. TV Input HAL
+----------------
+
+Native C/C++ layer (hardware/interfaces/tv/input/1.0/)
+
+Provides APIs for:
+	Video stream handling
+	Audio routing
+	Channel scanning
+	HDMI-CEC events
+	
+2. TV Input Service (TIS)
+-------------------------
+	Java app/service that talks to HAL.
+	Implements TvInputService API.
+	Each input source (HDMI1, HDMI2, DVB-T, IPTV) has its own TIS.
+	
+public class HdmiTvInputService extends TvInputService {
+    @Override
+    public Session onCreateSession(String inputId) {
+        return new HdmiSession(this);
+    }
+
+    class HdmiSession extends TvInputService.Session {
+        public HdmiSession(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void onRelease() { }
+
+        @Override
+        public boolean onSetSurface(Surface surface) {
+            // Pass surface to HAL to render HDMI video
+            return true;
+        }
+
+        @Override
+        public void onSetStreamVolume(float volume) { }
+
+        @Override
+        public void onTune(Uri channelUri) {
+            // Tune to HDMI port or tuner channel
+            notifyVideoAvailable();
+        }
+    }
+}
+
+
+3. TV Provider
+---------------
+	System database storing "channels, programs, EPG metadata."
+	Used by "Live TV app" to show channel list and guide.
+
+4. TV App (Front-end)
+
+	UI for users. Example: Google’s "Live Channels app."		
+	Uses TvView widget to show video surface.
+	Talks to TIS via "TvInputManager."
+	
+	
+Why TIF is Important
+----------------------
+	OEM/STB developers: implement custom TV Input Service + HAL for HDMI, tuners, IPTV.
+
+	App developers: build unified TV apps without worrying about hardware differences.
+
+	Google certification: requires working TIF for Android TV devices.
+	
+In short:
+----------
+TIF = bridge between TV hardware (HDMI, tuner, IPTV) and Android apps.
+
+OEMs implement TV Input HAL + TV Input Service, apps use TvInputManager + TvView.
+
+
+
+Minimal AOSP TV Input Service Example:
+=======================================
+
+1. Project Structure
+--------------------
+
+	packages/apps/MyTvInput/
+	 ├── Android.mk
+	 ├── AndroidManifest.xml
+	 └── src/com/example/tvinput/MyTvInputService.java
+
+2. AndroidManifest.xml
+------------------------
+This declares a TV Input Service component:
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.tvinput">
+
+    <application
+        android:label="My TV Input"
+        android:allowBackup="false">
+
+        <service
+            android:name=".MyTvInputService"
+            android:permission="android.permission.BIND_TV_INPUT"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.media.tv.TvInputService" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.media.tv.input"
+                android:resource="@xml/tv_input" />
+        </service>
+    </application>
+</manifest>
+
+
+3. tv_input.xml
+----------------
+Place under res/xml/tv_input.xml — describes this input to the system:
+
+<tv-input xmlns:android="http://schemas.android.com/apk/res/android"
+    android:canRecord="false"
+    android:canPauseRecording="false"
+    android:setupActivity="com.example.tvinput.SetupActivity"
+    android:tunerCount="1"
+    android:type="tuner"
+    android:label="My HDMI Input" />
+
+
+	* type="tuner" → could be hdmi, tuner, or ip.
+	* label → shown in Live TV app.
+	
+4. MyTvInputService.java
+-------------------------
+A minimal service that creates a Session:
+
+package com.example.tvinput;
+
+import android.content.Context;
+import android.media.tv.TvInputService;
+import android.net.Uri;
+import android.view.Surface;
+import android.util.Log;
+
+public class MyTvInputService extends TvInputService {
+    private static final String TAG = "MyTvInputService";
+
+    @Override
+    public Session onCreateSession(String inputId) {
+        Log.d(TAG, "Creating new TV input session: " + inputId);
+        return new MySession(this);
+    }
+
+    private class MySession extends Session {
+        public MySession(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void onRelease() {
+            Log.d(TAG, "Session released");
+        }
+
+        @Override
+        public boolean onSetSurface(Surface surface) {
+            Log.d(TAG, "Surface set: " + surface);
+            // TODO: connect Surface to HDMI/tuner HAL here
+            return true;
+        }
+
+        @Override
+        public void onSetStreamVolume(float volume) {
+            Log.d(TAG, "Volume set: " + volume);
+        }
+
+        @Override
+        public void onTune(Uri channelUri) {
+            Log.d(TAG, "Tuning to channel: " + channelUri);
+            // In a real TIF, talk to HAL here
+            notifyVideoAvailable();
+        }
+    }
+}
+
+5. Android.mk
+---------------
+For Android 8 (pre-Soong):
+
+LOCAL_PATH := $(call my-dir)
+
+include $(CLEAR_VARS)
+
+LOCAL_PACKAGE_NAME := MyTvInput
+LOCAL_CERTIFICATE := platform
+LOCAL_PRIVILEGED_MODULE := true
+
+LOCAL_SRC_FILES := $(call all-java-files-under, src)
+
+LOCAL_RESOURCE_DIR := \
+    $(LOCAL_PATH)/res
+
+LOCAL_SDK_VERSION := system_current
+
+include $(BUILD_PACKAGE)
+
+
+6. Add to Product
+-----------------
+
+In your device.mk:
+
+PRODUCT_PACKAGES += MyTvInput
+
+
+7. Build & Test
+----------------
+
+	. build/envsetup.sh
+	lunch aosp_x86_64_tv-userdebug
+	m MyTvInput
+
+Flash → boot → open Live Channels app → you should see “My HDMI Input” as a source.
+(If you don’t see it, check adb logcat | grep TvInput for errors.)
+
+
+This example doesn’t yet connect to HAL — it just registers as a TIF source and provides a dummy video session. From here you can:
+
+Connect to HDMI HAL (for AV input)
+Connect to tuner HAL (for DVB/ATSC)
+Or expose IPTV input
