@@ -1,0 +1,108 @@
+Step 0 — Open the project folder
+
+In PowerShell:
+
+cd E:\React_projects\todoapp
+
+
+Make sure package.json exists:
+
+Test-Path .\package.json
+
+
+If it returns False, create the Vite app first:
+
+cd E:\React_projects
+npm create vite@latest todoapp -- --template react
+cd .\todoapp
+npm install
+
+Step 1 — Install the correct PostCSS plugin (Tailwind v4)
+
+Run:
+
+npm install -D tailwindcss postcss autoprefixer @tailwindcss/postcss
+
+
+This ensures Tailwind + PostCSS + the new @tailwindcss/postcss plugin are present.
+
+Step 2 — Add PostCSS config (use CommonJS to avoid ESM issues)
+
+Create postcss.config.cjs in your project root with this exact content:
+
+// postcss.config.cjs
+module.exports = {
+  plugins: {
+    "@tailwindcss/postcss": {},
+    autoprefixer: {},
+  },
+};
+
+
+Using postcss.config.cjs with module.exports is the most-compatible option with Vite/Node 22.
+
+Step 3 — Add Tailwind config
+
+Create tailwind.config.js in the project root (ESM is ok here):
+
+// tailwind.config.js
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+  theme: { extend: {} },
+  plugins: [],
+};
+
+Step 4 — Add Tailwind directives to your CSS
+
+Create or replace src/index.css with:
+
+/* src/index.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* optional small reset */
+html, body, #root { height: 100%; }
+
+Step 5 — Ensure the CSS is imported by your app
+
+Open src/main.jsx (or src/main.js) and ensure it imports the CSS:
+
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App.jsx";
+import "./index.css";      // <- this line is required
+
+ReactDOM.createRoot(document.getElementById("root")).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+
+
+If your project imports ./App.css in App.jsx, either remove that import or keep it — but make sure the Tailwind directives are in the file you import (index.css recommended).
+
+Step 6 — Restart the dev server
+
+If a dev server is running, stop it (Ctrl+C) then run:
+
+npm run dev
+
+
+Open the displayed URL (usually http://localhost:5173) and check visually that Tailwind classes apply (e.g., try the temporary test below).
+
+Step 7 — Quick test (optional)
+
+Temporarily replace src/App.jsx with this minimal check to confirm Tailwind works:
+
+export default function App() {
+  return (
+    <div className="min-h-screen grid place-items-center bg-slate-100">
+      <h1 className="text-3xl font-bold">Tailwind is working 🎉</h1>
+    </div>
+  );
+}
+
+
+If the text is big and centered on a light-gray background, Tailwind is active.
