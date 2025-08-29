@@ -1,0 +1,220 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* SRMS Professional Admin Design System */
+
+@layer base {
+  :root {
+    /* Core Background & Text */
+    --background: 220 13% 98%;
+    --foreground: 215 25% 27%;
+    
+    /* Admin Dashboard Colors */
+    --admin-dark: 215 28% 17%;
+    --admin-darker: 215 32% 12%;
+    --admin-primary: 213 94% 68%;
+    --admin-primary-dark: 213 84% 58%;
+    --admin-success: 142 76% 36%;
+    --admin-warning: 45 93% 58%;
+    --admin-danger: 0 84% 60%;
+    
+    /* Card & Surface */
+    --card: 0 0% 100%;
+    --card-foreground: 215 25% 27%;
+    --card-hover: 220 13% 96%;
+    
+    /* Sidebar */
+    --sidebar-background: 215 28% 17%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-muted: 215 15% 65%;
+    --sidebar-accent: 213 94% 68%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 215 25% 25%;
+    
+    /* Interactive Elements */
+    --primary: 213 94% 68%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 213 84% 58%;
+    
+    --secondary: 220 13% 91%;
+    --secondary-foreground: 215 25% 27%;
+    --secondary-hover: 220 13% 85%;
+    
+    --muted: 220 13% 91%;
+    --muted-foreground: 215 13% 45%;
+    
+    --accent: 213 94% 68%;
+    --accent-foreground: 0 0% 100%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    /* Borders & Inputs */
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 213 94% 68%;
+    
+    /* Metrics & Status Colors */
+    --metric-total: 213 94% 68%;
+    --metric-online: 142 76% 36%;
+    --metric-offline: 0 84% 60%;
+    --metric-never: 45 93% 58%;
+    --metric-unregister: 280 85% 60%;
+    
+    /* Chart Colors */
+    --chart-1: 213 94% 68%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 45 93% 58%;
+    --chart-4: 0 84% 60%;
+    --chart-5: 280 85% 60%;
+    
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(213 94% 68%), hsl(213 84% 58%));
+    --gradient-success: linear-gradient(135deg, hsl(142 76% 36%), hsl(142 66% 46%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(220 13% 98%));
+    
+    /* Shadows */
+    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+    --shadow-hover: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -2px hsl(0 0% 0% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.1);
+    
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+}
+
+@layer components {
+  /* Admin Cards */
+  .admin-card {
+    @apply bg-card rounded-xl shadow-[var(--shadow-card)] border border-border/50;
+    @apply hover:shadow-[var(--shadow-hover)] transition-all duration-200;
+  }
+  
+  .admin-card-hover {
+    @apply hover:bg-card-hover cursor-pointer;
+  }
+  
+  /* Metric Cards */
+  .metric-card {
+    @apply admin-card p-6 admin-card-hover;
+  }
+  
+  .metric-card-total {
+    @apply metric-card border-l-4 border-l-[hsl(var(--metric-total))];
+  }
+  
+  .metric-card-online {
+    @apply metric-card border-l-4 border-l-[hsl(var(--metric-online))];
+  }
+  
+  .metric-card-offline {
+    @apply metric-card border-l-4 border-l-[hsl(var(--metric-offline))];
+  }
+  
+  .metric-card-never {
+    @apply metric-card border-l-4 border-l-[hsl(var(--metric-never))];
+  }
+  
+  .metric-card-unregister {
+    @apply metric-card border-l-4 border-l-[hsl(var(--metric-unregister))];
+  }
+  
+  /* Sidebar Styles */
+  .sidebar-nav-item {
+    @apply flex items-center px-4 py-3 text-sidebar-muted hover:text-sidebar-foreground;
+    @apply hover:bg-sidebar-accent/10 rounded-lg transition-all duration-200;
+  }
+  
+  .sidebar-nav-item.active {
+    @apply text-sidebar-accent bg-sidebar-accent/15 font-medium;
+  }
+  
+  /* Table Styles */
+  .admin-table {
+    @apply w-full border-collapse bg-card rounded-xl overflow-hidden shadow-[var(--shadow-card)];
+  }
+  
+  .admin-table th {
+    @apply bg-muted/50 px-6 py-4 text-left text-sm font-semibold text-muted-foreground;
+    @apply border-b border-border;
+  }
+  
+  .admin-table td {
+    @apply px-6 py-4 text-sm text-card-foreground border-b border-border/50;
+  }
+  
+  .admin-table tr:hover {
+    @apply bg-card-hover;
+  }
+  
+  /* Button Variants */
+  .btn-export {
+    @apply bg-[hsl(var(--admin-success))] hover:bg-[hsl(var(--admin-success))]/90;
+    @apply text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200;
+    @apply flex items-center gap-2 shadow-sm hover:shadow-md;
+  }
+  
+  .btn-admin-primary {
+    @apply bg-[hsl(var(--admin-primary))] hover:bg-[hsl(var(--admin-primary-dark))];
+    @apply text-white px-6 py-3 rounded-lg font-medium transition-all duration-200;
+    @apply shadow-lg hover:shadow-xl transform hover:-translate-y-0.5;
+  }
+  
+  /* Chart Container */
+  .chart-container {
+    @apply admin-card p-6;
+  }
+  
+  /* Animations */
+  .hover-scale {
+    @apply transition-transform duration-200 hover:scale-105;
+  }
+}
