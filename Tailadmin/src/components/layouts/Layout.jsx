@@ -28,16 +28,16 @@ const Layout = () => {
   
   return (
     <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <Sidebar 
-        isOpen={isSidebarOpen} 
-        isMinimized={isMinimized}
-      />
+      {/* Sidebar - positioned absolutely within the flex container */}
+      <div className={`relative ${isSidebarOpen ? (isMinimized ? 'w-16' : 'w-64') : 'w-0'} transition-all duration-300 flex-shrink-0`}>
+        <Sidebar 
+          isOpen={isSidebarOpen} 
+          isMinimized={isMinimized}
+        />
+      </div>
       
-      {/* Main content area - positioned to start after sidebar */}
-      <div className={`flex flex-col flex-1 transition-all duration-300 ${
-        isSidebarOpen ? (isMinimized ? 'lg:ml-16' : 'lg:ml-64') : 'ml-0'
-      }`}>
+      {/* Main content area - takes remaining space */}
+      <div className="flex-1 flex flex-col">
         {/* Header - always visible at top */}
         <Header isMinimized={isMinimized} toggleMinimize={toggleMinimize} />
         
@@ -45,7 +45,7 @@ const Layout = () => {
         <AnimatePresence mode="wait">
           <motion.main
             key={location.pathname}
-            className="flex-1 overflow-y-auto p-6"
+            className="flex-1 p-6"
             initial="initial"
             animate="in"
             exit="out"
